@@ -1,0 +1,171 @@
+---
+title: "r4ds-ch13"
+---
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+## Parsing Numbers
+
+```{r}
+x <- c("2", "10", "-5")
+class(x)
+parse_integer(x)
+parse_double(x)
+```
+
+```{r}
+x <- c("2", "$10", "-5x")
+parse_number(x)
+```
+
+## Count
+```{r}
+flights |> count(dest)
+```
+
+
+```{r}
+flights |> 
+  count(dest, sort = TRUE)
+```
+
+
+```{r}
+flights |> 
+  count(dest, sort = TRUE)
+```
+
+```{r}
+flights |> 
+  group_by(dest) |> 
+  summarise(carriers = n_distinct(carrier)) |> 
+  arrange(desc(carriers))
+```
+
+```{r}
+flights |> 
+  group_by(tailnum) |> 
+  summarise(miles = sum(distance)) |> 
+  arrange(desc(miles))
+```
+
+
+```{r}
+flights |> 
+  count(tailnum, wt = distance)
+```
+
+
+## Numeric Transformation
+
+```{r}
+x1 <- c(10, 5, 20, 15, 30, 25)
+x2 <- c(2, 5, 9, 6)
+x1 / x2
+```
+
+## Min & Max
+
+```{r}
+df <- tribble(
+  ~x, ~y,
+  1,  3,
+  5,  2,
+  7,  NA
+)
+
+df |> 
+  mutate(
+    min = pmin(x, y, na.rm = TRUE),
+    max = pmax(x, y, na.rm = TRUE)
+  )
+```
+
+```{r}
+flights |> 
+  group_by(hour = sched_dep_time %/% 100) |> 
+  summarise(prop_cancelled = mean(is.na(dep_time)), n = n()) |> 
+  filter(hour > 1) |> 
+  ggplot(aes(x = hour, y = prop_cancelled)) +
+  geom_line(color = "gray50") +
+  geom_point(aes(size = n))
+```
+
+## Cutting
+
+```{r}
+x <- c(1, 2, 5, 10, 15, 20)
+cut(x, breaks = c(0, 5, 10, 15, 20))
+```
+
+```{r}
+x <- c(1, 1, 1, 1, 16, 22)
+cut(x, breaks = c(0, 5, 10, 15, 200), labels = c("a", "b", "c", "d"))
+```
+
+
+
+
+```{r}
+events <- tibble(
+  time = c(0, 1, 2, 3, 5, 10, 12, 15, 17, 19, 20, 27, 28, 30)
+)
+
+events <- events |> 
+  mutate(
+    diff = time - lag(time, default = first(time)),
+    has_gap = diff >= 5
+  )
+
+events |> 
+  mutate(
+    group = cumsum(has_gap)
+  )
+```
+
+```{r}
+df <- tibble(
+  x = c("a", "a", "a", "b", "c", "c", "d", "e", "a", "a", "b", "b"),
+  y = c(1, 2, 3, 2, 4, 1, 3, 9, 4, 8, 10, 199)
+)
+
+df |> 
+  group_by(id = consecutive_id(x)) |> 
+  slice_head(n = 1)
+```
+
+## Spread
+
+```{r}
+flights |> 
+  group_by(origin, dest) |> 
+  summarise(
+    distance_iqr = IQR(distance),
+    n = n(),
+    .groups = "drop"
+  ) |> 
+  filter(distance_iqr > 0)
+```
+
+
+## Distribution
+
+```{r}
+flights |> 
+  filter(dep_delay < 120) |> 
+  ggplot(aes(x = dep_delay, group = interaction(day, month))) + 
+  geom_freqpoly(binwidth = 5, alpha = 1/5)
+```
+
+
+## Positions
+
+```{r}
+flights |> 
+  group_by(year, month, day) |> 
+  summarise(first_dep = first(dep_time, na_rm = TRUE))
+```
+
