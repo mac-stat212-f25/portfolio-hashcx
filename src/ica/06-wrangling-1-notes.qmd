@@ -495,7 +495,8 @@ gss_cat |>
             "Other"                 = "Don't know",
             "Other"                 = "Other party"
         )
-    )
+    ) |> 
+  count(partyid, sort = TRUE)
 ```
 
 
@@ -523,6 +524,10 @@ gss_cat |>
 
 ```{r}
 ratings <- c("High", "Medium", "Low")
+sort(ratings)
+
+ratings_fct = factor(ratings, levels = ratings)
+sort(ratings_fct)
 ```
 
 
