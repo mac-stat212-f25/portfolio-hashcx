@@ -1,0 +1,293 @@
+---
+title: "r4ds-ch12"
+---
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+
+```{r}
+x <- c(1, 2, 3, 5, 7, 11, 13)
+x * 2
+```
+
+```{r}
+df <- tibble(x)
+df
+
+df |> 
+  mutate(y = x * 2)
+```
+## Logical
+
+```{r}
+flights |> 
+  filter(dep_time > 600 & dep_time < 2000 & abs(arr_delay) < 20)
+```
+
+```{r}
+flights |> 
+  mutate(daytime = dep_time > 600 & dep_time < 2000,
+         appro_ontime = abs(arr_delay) < 20,
+         .keep = "used")
+```
+
+
+```{r}
+flights |> 
+  mutate(daytime = dep_time > 600 & dep_time < 2000,
+         appro_ontime = abs(arr_delay) < 20,
+         .keep = "used") |> 
+  filter(daytime & appro_ontime)
+```
+
+
+## Floating Points
+
+```{r}
+x <- c(1/49 * 49, sqrt(2) ^ 2)
+x
+```
+
+```{r}
+x == c(1, 2)
+```
+
+```{r}
+print(x, digits = 16)
+```
+
+```{r}
+near(x, c(1, 2))
+```
+
+## Missing Values
+
+```{r}
+NA > 5
+```
+
+```{r}
+10 == NA
+```
+
+```{r}
+NA == NA
+```
+
+```{r}
+age_maryy <- NA
+
+age_john <- NA
+
+age_maryy == age_john
+```
+
+```{r}
+flights |> 
+  filter(dep_time == NA)
+```
+
+```{r}
+is.na(c(TRUE, NA, FALSE))
+```
+
+```{r}
+is.na(c(1, NA, 3))
+```
+
+
+
+```{r}
+flights |> 
+  filter(is.na(dep_time))
+```
+
+
+```{r}
+flights |> 
+  filter(month == 1, day == 1) |> 
+  arrange(dep_time)
+```
+
+
+```{r}
+flights |> 
+  filter(month == 1, day == 1) |> 
+  arrange(desc(is.na(dep_time)))
+```
+
+## Boolean Algebra
+
+```{r}
+df <- tibble(x = c(TRUE, FALSE, NA))
+
+df |> 
+  mutate(
+    and = x & NA,
+    or = x | NA
+  )
+```
+
+```{r}
+flights |> 
+  filter(month == 11 | 12)
+```
+
+
+```{r}
+flights |> 
+  filter(month == 11 | month == 12)
+```
+
+
+```{r}
+1:12 %in% c(1, 5, 10)
+```
+
+```{r}
+letters[1:10] %in% c("a", "e", "i", "o", "u")
+```
+
+```{r}
+LETTERS[1:10]
+```
+
+```{r}
+flights |> 
+  filter(month %in% c(11, 12))
+```
+
+
+## Summaries
+
+```{r}
+flights |> 
+  group_by(year, month, day) |> 
+  summarize(
+    all_delayed = all(dep_delay <= 60, na.rm = TRUE),
+    any_long_delay = any(arr_delay >= 300, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+
+```{r}
+flights |> 
+  group_by(year, month, day) |> 
+  summarize(
+    num_delayed = sum(dep_delay <= 60, na.rm = TRUE),
+    prop_delayed = mean(dep_delay <= 60, na.rm = TRUE),
+    num_long_delay = sum(arr_delay >= 300, na.rm = TRUE),
+    num_long_delay = mean(arr_delay >= 300, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+
+## Logical Subsetting
+
+
+```{r}
+flights |> 
+  filter(arr_delay > 0) |> 
+  group_by(year, month, day) |> 
+  summarise(
+    behind = mean(arr_delay), 
+    n = n(),
+    .groups = "drop"
+  )
+```
+
+
+```{r}
+flights |> 
+  group_by(year, month, day) |> 
+  summarise(
+    behind = mean(arr_delay[arr_delay > 0], na.rm = TRUE),
+    ahead = mean(arr_delay[arr_delay < 0], na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+```
+
+
+## Conditional Transofrmations
+
+```{r}
+x <- c(-3:3, NA)
+if_else(x > 0, "+ive", "-ive")
+```
+
+```{r}
+x <- c(-3:3, NA)
+if_else(x > 0, "+ive", "-ive", "???")
+```
+
+
+```{r}
+x <- c(-3:3, NA)
+if_else(x < 0, -x, x)
+```
+
+```{r}
+x1 <- c(NA, 1, 2, NA)
+y1 <- c(3, NA, 4, 6)
+if_else(is.na(x1), y1, x1)
+```
+
+```{r}
+if_else(x == 0, "0", if_else(x < 0, "-ive", "+ive"), "???")
+```
+
+## Case When
+
+```{r}
+x <- c(-3:3, NA)
+case_when(
+  x == 0   ~ "0",
+  x <  0   ~ "-ive",
+  x >  0   ~ "+ive",
+  is.na(x) ~ "???"
+)
+```
+
+```{r}
+x <- c(-3:3, NA)
+case_when(
+  x < 0 ~ "-ive",
+  x > 0 ~ "+ive",
+)
+```
+
+```{r}
+x <- c(-3:3, NA)
+case_when(
+  x < 0 ~ "-ive",
+  x > 0 ~ "+ive",
+  .default = "ddd"
+)
+```
+
+
+```{r}
+x <- c(-3:3, NA)
+case_when(
+  x < 0 ~ -x,
+  x > 0 ~ x
+)
+```
+
+```{r}
+if_else(TRUE, "a", 1)
+```
+
+```{r}
+case_when(
+  TRUE ~ "a",
+  TRUE ~ 1
+)
+```
+
