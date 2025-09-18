@@ -70,3 +70,4 @@ _freeze/
 *.aux
 *.toc
 /src/ica/04_adv_maps/data
+/src/ica/04_adv_maps/figures
