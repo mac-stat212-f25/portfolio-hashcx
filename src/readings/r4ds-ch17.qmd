@@ -1,0 +1,375 @@
+---
+title: "r4ds-ch16"
+---
+
+DATES & TIMES --> `libidate` package in `tidyverse` core
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+- R does NOT have a native class to store times, it ONLY do dates and date-times.  To use times, use `hms` package
+- In Tibbles,
+  - date printed as `<date>`
+  - time printed as `<time>`
+  - date-time printed as `<dttm>`.  Date-time handels timezone.
+- Base R calls these POSIXct
+
+```{r}
+# current day
+today()
+```
+
+```{r}
+# current date-time
+now()
+```
+
+## Creating Date/Time
+
+### During Import
+
+#### Date stored in ISO8601 Format
+
+`YYYY-MM-DD HH:MM` or `YYYY-MM-DDTHH:MM`
+
+No need to do anythig
+
+```{r}
+csv <- "
+  date,datetime
+  2022-01-02,2022-01-02 05:12
+  2022-01-02,2022-01-02T05:12
+  2022-01-02,2022-01-02T05:12:15
+"
+
+read_csv(csv)
+```
+
+
+#### Date stored NOT in ISO8601 Format
+
+```{r}
+csv <- "
+  date,datetime
+  2022/01/02,2022/01/02 05:12:00
+  2022/01/02,2022/01/02 05:12:00
+  2022/01/02,2022/01/02 05:12:15
+"
+
+read_csv(csv, 
+         col_types = cols(date = col_date("%Y/%m/%d"),
+                          datetime = col_datetime("%Y/%m/%d%*%I:%M:%S")))
+```
+
+#### Non-English Dates
+
+Provide `readr::locale()` or create your own with `readr::date_names()`
+
+```{r}
+# list of built-in languages
+readr::date_names_langs()
+```
+
+#### Using `libridate` Package
+
+Creating dates using the date-time specifications language is powerful but require careful analysis of the date format.  An eaiser way is to use the `libridate` helper functions by specifying the order in which year, month, and day (and hours, minutes, and seconds) appear and the functions do the rest.
+
+```{r}
+csv <- "
+  date,datetime
+  2022/01/02,2022/01/02 05:12:00
+  2022/01/02,2022/01/02 05:12:00
+  2022/01/02,2022/01/02 05:12:15
+"
+
+read_csv(csv) |> 
+  mutate(
+    date = ymd(date),
+    datetime = ymd_hms(datetime)
+    )
+
+read_csv(csv) |> 
+  mutate(
+    # force creating date-time from date by using timezone
+    date = ymd(date, tz = "UTC"),
+    datetime = ymd_hms(datetime)
+    )
+```
+
+
+### From Individual Components
+
+Use `make_date()` and `make_datetime()`
+
+```{r}
+flights |> 
+  select(year, month, day, hour, minute) |> 
+  mutate(departure = make_datetime(year, month, day, hour, minute))
+```
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights |> 
+  filter(!is.na(dep_time), !is.na(arr_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_100(year, month, day, sched_arr_time)
+  ) |> 
+  select(origin, dest, ends_with("delay"), ends_with("time")) |> 
+  ggplot() +
+  geom_freqpoly(aes(x = dep_time), binwidth = 86400) # 86400 seconds = 1 day
+```
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights |> 
+  filter(!is.na(dep_time), !is.na(arr_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_100(year, month, day, sched_arr_time)
+  ) |> 
+  select(origin, dest, ends_with("delay"), ends_with("time")) |> 
+  filter(dep_time < ymd(20130102)) |> 
+  ggplot() +
+  geom_freqpoly(aes(x = dep_time), binwidth = 600) # 600 seconds = 10 minutes
+```
+
+When using **date-time** in a numeric context such as a histogram, 1 means 1 second.  Hence, a binwidth of 86500 means one day.  For **dates**, 1 means 1 day.
+
+### From Other Types
+
+#### Switching b/w `date-time` and `date`
+
+Use `as_datetime()` and `as_date()`
+
+```{r}
+today()
+as_datetime(today())
+```
+
+```{r}
+now()
+as_date(now())
+```
+
+#### Numeric Offsets from Unix Epoch, 1970-01-01
+
+If the offset is in seconds, use `as_datetime()`.
+If the offset is in days, use `as_date()`
+
+```{r}
+offset = 1750000000
+offset
+as_datetime(offset)
+```
+
+```{r}
+offset = 20400
+offset
+as_date(offset)
+```
+
+## Date-Time Components
+
+### Getting Components
+
+- `year()`
+- `month()`
+- `mday()` day of the month
+- `yday()` day of the year
+- `wday()` day of the week
+- `hour()`
+- `minute()`
+- `second()`
+
+
+For `month()` and `wday()`, 
+
+- `label = TURE` return abbreviated name
+- `abbr = FALSE` return the full name
+
+
+```{r}
+datetime <- ymd_hms("2025-09-21 09:47:02 PM")
+datetime
+
+month(datetime)
+month(datetime, label = TRUE)
+month(datetime, label = TRUE, abbr = FALSE)
+
+wday(datetime)
+wday(datetime, label = TRUE)
+wday(datetime, label = TRUE, abbr = FALSE)
+```
+
+
+
+### Rounding
+
+Date can be rounded up, down, and to to nearby time unit, using
+
+- `ceiling_date()`
+- `floor_date()`
+- `round_date()`
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights |> 
+  filter(!is.na(dep_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time)
+  ) |> 
+  count(week = floor_date(dep_time, unit = "week")) |> 
+  ggplot(aes(x = week, y = n)) +
+  geom_line() + 
+  geom_point() +
+  ggtitle("Number of weekly flights")
+```
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights |> 
+  filter(!is.na(dep_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time)
+  ) |> 
+  count(month = floor_date(dep_time, unit = "month")) |> 
+  ggplot(aes(x = month, y = n)) +
+  geom_line() + 
+  geom_point() +
+  ggtitle("Number of monthly flights")
+```
+
+
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights |> 
+  filter(!is.na(dep_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time)
+  ) |> 
+  count(year = floor_date(dep_time, unit = "year")) |> 
+  ggplot(aes(x = year, y = n)) +
+  geom_line() + 
+  geom_point() +
+  ggtitle("Number of yearly flights")
+```
+
+### Setting Components
+
+```{r}
+datetime <- ymd_hms("2025-09-21 09:47:02 PM")
+datetime
+
+
+month(datetime, label = TRUE, abbr = FALSE)
+month(datetime) <- 10
+month(datetime, label = TRUE, abbr = FALSE)
+```
+
+```{r}
+datetime <- ymd_hms("2025-09-21 09:47:02 PM")
+datetime
+
+
+month(datetime, label = TRUE, abbr = FALSE)
+datetime <- update(datetime, month = 10)
+month(datetime, label = TRUE, abbr = FALSE)
+```
+
+
+If the values are too big, they roll over
+
+```{r}
+datetime <- ymd_hms("2025-09-21 09:47:02 PM")
+datetime
+
+
+month(datetime, label = TRUE, abbr = FALSE)
+datetime <- update(datetime, month = 14)
+month(datetime, label = TRUE, abbr = FALSE)
+```
+
+## Time Spans
+
+Doing arithmetic on dates.  Important classes of date data:
+
+- Duration: represent exact number of seconds
+- Period: present human units like weeks and months
+- Intervals: represent starting and ending point
+
+
+## Time Zones
+
+R uses the international standard IANA time zones which uses a consitent nameing scheme `{area}/{location}`, typically in the form `{continent}/{city}` or `{ocean}/{city}`, eg, `America/New_York`, `Europe/Paris`, and `Pacific/Auckland`.  This is because everyday names of time zones tend to be ambiguous, eg, besides `EST` (Eastern Standard Time) for USA, there is `EST` for Canada and Australia.  Read more about this on https://www.iana.org/time-zones
+
+```{r}
+# my current timezone, if R does not know it, it return NA
+Sys.timezone()
+```
+
+```{r}
+# complete list of all time zone
+OlsonNames()
+```
+
+Time zone of date-time in R is only for printing, lubricate always uses UTC (Coordinated Universal Time) which is the standard time zone used by the scientific community and roughly equivalent to GMT (Greenwich Mean Time).  UTC does not have DST (Daylight Saving Time) which makes a convenient represention for computation.
+
+```{r}
+ny <- ymd_hms("2024-06-01 12:00:00", tz = "America/New_York")
+ny
+
+ch <- ymd_hms("2024-06-01 18:00:00", tz = "Europe/Copenhagen")
+ch
+
+au <- ymd_hms("2024-06-02 04:00:00", tz = "Pacific/Auckland")
+au
+
+ny - ch
+ny - au
+ch - au
+```
+
+Operations that combine date-times, eg, `c()`, drop the time zone and display the date-times in the time zone of the first element.  The display of time zone of the date-times can be changed using `with_tz()`.  Alternatively, the time zone of the date-times themselves can be changed using `force_tz`
+
+```{r}
+ny <- ymd_hms("2024-06-01 12:00:00", tz = "America/New_York")
+ny
+
+ch <- ymd_hms("2024-06-01 18:00:00", tz = "Europe/Copenhagen")
+ch
+
+au <- ymd_hms("2024-06-02 04:00:00", tz = "Pacific/Auckland")
+au
+
+c(ny, ch, au)
+
+with_tz(c(ny, ch, au), tzone = "Australia/Lord_Howe")
+with_tz(c(ny, ch, au), tzone = "Australia/Lord_Howe") - c(ny, ch, au)
+
+force_tz(c(ny, ch, au), tzone = "Australia/Lord_Howe")
+force_tz(c(ny, ch, au), tzone = "Australia/Lord_Howe") - c(ny, ch, au)
+```
+
