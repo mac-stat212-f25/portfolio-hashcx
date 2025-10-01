@@ -1,0 +1,157 @@
+---
+title: "r4ds-ch16"
+---
+
+FACTORS --> `forcate` package in `tidyverse`
+
+```{r}
+library(tidyverse)
+```
+
+`forcate` package, part of `tidyverse` core, provides tools for dealing with categorical variables
+
+```{r}
+x1 <- c("Dec", "Apr", "Jan", "Mar")  # don't sort alphabetically, not what we want
+sort(x1)
+```
+
+```{r}
+x2 <- c("Dec", "Apr", "Jam", "Mar")  # Ops. Typo & don't sort alphabitically, not what we want
+sort(x2)
+```
+
+## Create factor
+
+Step 1: create a list
+```{r}
+month_levels <- c(
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+)
+```
+
+Step 2: Use the list to create a factor
+```{r}
+y1 = factor(x1, levels = month_levels)
+sort(y1)
+```
+
+Values not in the list will be silently converted to `NA` which is risky
+```{r}
+y2 <- factor(x2, levels = month_levels)
+y2
+```
+
+So, instead we use `forcat::fct`
+```{r}
+y2.2 <- forcats::fct(x2, levels = month_levels)
+```
+
+
+When removing the `levels` argument, `factor` sort levels alphabetically but `forcats::fct` sort them by first appearance
+```{r}
+y1 <- factor(x1)
+sort(y1)
+levels(y1)
+```
+
+```{r}
+y1 <- forcats::fct(x1)
+y1
+levels(y1)
+```
+
+## `forcats::gss_cat` dataset
+
+A sample of data from the General Social Survey, a long-running US survey collected by the independent research organization NORC at the University of Chicago.  The survey has thousands of questions but `gss_cat` has a handful that will illustrate some common challenges you’ll encounter when working with factors.
+
+```{r}
+gss_cat
+```
+
+```{r}
+?gss_cat
+```
+
+Look at levels of some factors
+```{r}
+gss_cat |> 
+  count(race)
+```
+
+```{r}
+summary(gss_cat)
+```
+
+## Modify Factor Order
+
+```{r}
+gss_cat |> 
+  group_by(relig) |> 
+  summarise(
+    tvhours = mean(tvhours, na.rm = TRUE),
+    n = n()
+  ) |> 
+  ggplot(aes(x = tvhours, y = fct_reorder(relig, tvhours, .desc = TRUE))) + 
+  geom_point()
+```
+
+## Move Level to Front
+```{r}
+gss_cat |> 
+  group_by(rincome) |> 
+  summarise(
+    age = mean(age, na.rm = TRUE),
+    n = n()
+  ) |> 
+  ggplot(aes(x = age, y = fct_relevel(rincome, "Not applicable"))) + 
+  geom_point()
+```
+
+## Reorder Levels based on Ending Value of Anohter
+
+This allow the lines of the different levels to align with legend
+
+```{r}
+gss_cat |> 
+  filter(!is.na(age)) |> 
+  count(age, marital) |> 
+  group_by(age) |> 
+  mutate(
+    prop = n / sum(n)
+  ) |> 
+  ggplot(aes(x = age, y = prop, color = fct_reorder2(marital, age, prop))) + 
+  geom_line()
+```
+
+## Reorder Levels for Bar Plots
+```{r}
+gss_cat |> 
+  mutate(marital = marital |> fct_infreq() |> fct_rev()) |> 
+  ggplot(aes(marital)) + 
+  geom_bar()
+```
+
+
+## Modifying Factor Levels
+
+- `fct_recode`
+- `fct_collapse` --> multiple groups to one
+- `fct_lump*()` --> lump together small groups
+   - `fct_lump_lowfreq()` --> lump the smallest groups into one
+   - `fct_lump_n()` --> lump into n groups
+   - `fct_lump_min()`
+   - `fct_lump_prop()`
+
+## Order Factors
+
+There is order but the distance between levels in unknown.  Notice the prnt.
+
+```{r}
+ordered(c("a", "b", "c", "d"))
+```
+
+## Resouces
+
+- [`forcats` Reference](https://forcats.tidyverse.org/reference/index.html)
+- [Wrangling categorical data in R](https://peerj.com/preprints/3163/) by Amelia McNamara and Nicholas Horton to learn more about factors.

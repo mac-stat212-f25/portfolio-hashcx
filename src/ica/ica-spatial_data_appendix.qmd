@@ -1,0 +1,87 @@
+---
+title: "Spatial Data Appendix"
+---
+
+## Projections
+
+See [list of projections](https://proj.org/en/stable/operations/projections/index.html) on PROJ.ORG
+
+```{r}
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+```
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+```
+
+### ???
+
+```{r}
+ggplot(data = world) +
+  geom_sf()
+```
+
+```{r}
+#| include: false
+
+ggplot(data = world) +
+  geom_sf() +
+  coord_sf(crs = "PROJ4 string")
+```
+
+
+### Equal Earth
+
+```{r}
+ggplot(data = world) +
+  geom_sf() +
+  coord_sf(crs = "+proj=eqearth")
+```
+
+
+
+### Mercator
+
+```{r}
+ggplot(data = world) +
+  geom_sf() +
+  coord_sf(crs = "+proj=merc")
+```
+
+
+### Lambert 
+
+```{r}
+ggplot(data = world) +
+  geom_sf() + 
+  coord_sf(crs = "+proj=laea")
+```
+
+
+### Foucaut
+```{r}
+ggplot(data = world) +
+  geom_sf() + 
+  coord_sf(crs = "+proj=fouc")
+```
+
+### Natural Earth II
+```{r}
+ggplot(data = world) +
+  geom_sf() + 
+  coord_sf(crs = "+proj=natearth2")
+```
+
+
+
+### Bonne (Werner lat_1=90)
+
+https://proj.org/en/stable/operations/projections/bonne.html
+
+```{r}
+ggplot(data = world) +
+  geom_sf() + 
+  coord_sf(crs = "+proj=bonne +lat_1=10")
+```

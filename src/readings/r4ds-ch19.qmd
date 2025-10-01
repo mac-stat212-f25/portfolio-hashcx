@@ -1,0 +1,129 @@
+---
+title: "r4ds-ch19"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+- Primary Key: 1+ variable the uniquely identify each observation
+- Compound primary Key: 2+ variables that uniquely identify each observation
+- Foreign key: 1+ variable the corresponds to a primary key in another table
+
+It is a good practice to always verify that primary keys are indeed uniquely identify each observation.
+```{r}
+planes |> 
+  count(tailnum) |> 
+  filter(n > 1)
+```
+
+```{r}
+airports |> 
+  count(faa) |> 
+  filter(n > 1)
+```
+
+```{r}
+flights |> 
+  count(time_hour, flight, carrier) |> 
+  filter(n > 1)
+```
+
+```{r}
+weather |> 
+  count(time_hour, origin) |> 
+  filter(n > 1)
+```
+
+```{r}
+airlines |> 
+  count(carrier) |> 
+  filter(n > 1)
+```
+
+We should also check for missing values in the primary keys becuase if a value is missing it can't identify an observation
+```{r}
+planes |> 
+  filter(is.na(tailnum))
+```
+
+Surrogate keys are keys that we create when the primary key consits of 2+ variabls.  Surrogate keys make communication eaiser, so instead of saying look at the obsrvation that has this value at col1 and this value at col2 and this value at col3, we could say instead look at row X (assuming we introduced a surrogate key that number the rows)
+```{r}
+flights |> 
+  mutate(id = row_number(), .before = 1)
+```
+
+**Natural join** (joining based on all the variables that appear in both data frames) happens automatically when we don't specify the join key but this is sometimes not what we need.
+```{r}
+# natural join based on year & tailnum
+#   but year in flights is for flight departure year 
+#   and year in planes is for the plan manufacturing date
+flights |> 
+  left_join(planes)
+
+# override the default
+flights |> 
+  left_join(planes, join_by(tailnum == tailnum))
+
+# and in short form
+flights |> 
+  left_join(planes, join_by(tailnum))
+
+# or using the character vector which is not preferred
+flights |> 
+  left_join(planes, by = c("tailnum" = "tailnum"))
+
+# and in short form
+flights |> 
+  left_join(planes, by = "tailnum")
+```
+
+
+Anti-join is useful in finding **implicit** missing data, ie, values that does not show up as `NA` but instead only exit as an absence.
+```{r}
+# find rows missing from airport by looking for flights that don't have a matching
+#   destination airport
+flights |> 
+  anti_join(airports, join_by(dest == faa)) |> 
+  distinct(dest)
+```
+
+```{r}
+# which tailnum are missing from planes
+flights |> 
+  anti_join(planes, join_by(tailnum)) |> 
+  distinct(tailnum)
+```
+
+When (equi) joining data frames, dplyr keep only one key column because keys in x and y are the same but we can ask dplyer to keep both
+```{r}
+x <- tribble(
+  ~key, ~val_x,
+     1, "x1",
+     2, "x2",
+     3, "x3"
+)
+
+y <- tribble(
+  ~key, ~val_y,
+     1, "y1",
+     2, "y2",
+     4, "y3"
+)
+
+x |> 
+  left_join(y, join_by(key == key), keep = TRUE)
+```
+
+- Cross join is useful when wanting to generate permutations
+- Inequality join is useful when wanting to generate combinations (not all permutations but restricted version)
+- Rolling join is useful when dates do not line up perfectly and want ot find for example the closet date in table 1 that comes before (or after) some date in table 2.  See [19.5.2](https://r4ds.hadley.nz/joins.html#rolling-joins) for an interesting use case about planning party
+
+## Transform Section Summary
+
+- deal with logical vectors, numbers, and complete tables: `dplyr`, `base R`
+- deal with strings: `stringr`
+- deal with date-times: `lubridate`
+- deal with factors: `forcats`

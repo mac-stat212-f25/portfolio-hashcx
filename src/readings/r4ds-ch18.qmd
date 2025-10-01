@@ -1,0 +1,205 @@
+---
+title: "r4ds-ch18"
+format: html
+---
+
+```{r}
+library(tidyverse)
+```
+
+## Explicit Missing Value
+
+You can see `NA` in the data
+
+A common use of missing values is a *data entry convenience*, ie, when data is entered by hand, missing values sometimes indicate that the value in the previous row has been repeated (or carried forward).  This scenario can be fixed easily using `dplyr::fill()`--this action is called *last observation carried forward* or *locf* for short.  `.direction` argument can be used if needed.
+```{r}
+treatment <- tribble(
+  ~person,           ~treatment, ~response,
+  "Derrick Whitmore", 1,         7,
+  NA,                 2,         10,
+  NA,                 3,         NA,
+  "Katherine Burke",  1,         4
+)
+treatment
+
+treatment |> 
+  fill(everything())
+```
+
+Sometimes missing values represent some fixed and known value, most commonly 0.  This can be fixed using `dplyr::coalesce`
+```{r}
+x <- c(1, 4, 5, 7, NA)
+x
+
+x |> 
+  coalesce(0)
+```
+
+Sometimes the missing values are represented using some concrete value, eg, some old software programs that does not have proper way to represent missing values, use some special values like 99 or -999.  In this scenario, when reading using `na` argument or when you discover later, use `readr::ma_if`
+```{r}
+csv <- "n\n1\n2\n-99"
+read_csv(csv, na = "-99")
+
+read_csv(csv)
+
+read_csv(csv) |> 
+  mutate(n = na_if(n, -99))
+```
+
+`NaN` (Not a Number, pronounced "nan") generally encountered with performing mathematical operations that has an indeterminate result.
+```{r}
+0/0
+
+0*Inf
+
+Inf - Inf
+
+sqrt(-1)
+
+```
+
+`NaN` behaves the same as `NA`
+```{r}
+x <- c(NA, NaN)
+
+x
+
+x * 10
+
+x == 1
+
+is.na(x)
+```
+
+## Implicit Missing Values
+
+For example, an entire row is absent from the data.
+```{r}
+# first quarter of 2021 is missing
+stocks <- tibble(
+  year  = c(2020, 2020, 2020, 2020, 2021, 2021, 2021),
+  qtr   = c(   1,    2,    3,    4,    2,    3,    4),
+  price = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks
+```
+
+
+One way to expose implicitly missing data is to use `pivit_wider()`
+```{r}
+stocks <- tibble(
+  year  = c(2020, 2020, 2020, 2020, 2021, 2021, 2021),
+  qtr   = c(   1,    2,    3,    4,    2,    3,    4),
+  price = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks |> 
+  pivot_wider(
+    names_from = qtr,
+    values_from = price)
+```
+
+
+or by using `tidyr::complete()`
+```{r}
+stocks <- tibble(
+  year  = c(2020, 2020, 2020, 2020, 2021, 2021, 2021),
+  qtr   = c(   1,    2,    3,    4,    2,    3,    4),
+  price = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks |> 
+  complete(year, qtr)
+```
+
+If the individual variables are themselves are incomplete, we can provide our data
+```{r}
+stocks |> 
+  complete(year = 2019:2021, qtr)
+```
+
+If the range of the variable is correct but not all the values present, we can use `full_seq(x, 1)` to generate all the values from `min(x)` to `max(x)` spaced out by 1
+```{r}
+stocks <- tibble(
+  year  = c(2020, 2020, 2020, 2020, 2021, 2021, 2022),
+  qtr   = c(   1,    2,    3,    4,    2,    3,    4),
+  price = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks |> 
+  complete(year = full_seq(year, 1), qtr = full_seq(qtr, 1))
+```
+
+We can also expose the missing values in a dataset by using another which can be done using `dplyr::anti_join()`.
+
+
+`count()` drops empty groups by default but we can force it to keep them
+```{r}
+health <- tibble(
+  name   = c("Ikaia", "Oletta", "Leriah", "Dashay", "Tresaun"),
+  smoker = factor(c("no", "no", "no", "no", "no"), levels = c("yes", "no")),
+  age    = c(34, 88, 75, 47, 56),
+)
+
+health
+
+health |> 
+  count(smoker)
+
+health |> 
+  count(smoker, .drop = FALSE)
+```
+
+
+ggplot2's discrete axis also drop levels that don't have any values by default but we can force it to keep them
+```{r}
+health <- tibble(
+  name   = c("Ikaia", "Oletta", "Leriah", "Dashay", "Tresaun"),
+  smoker = factor(c("no", "no", "no", "no", "no"), levels = c("yes", "no")),
+  age    = c(34, 88, 75, 47, 56),
+)
+
+health
+
+health |> 
+  ggplot(aes(x = smoker)) +
+  geom_bar()
+
+health |> 
+  ggplot(aes(x = smoker)) +
+  geom_bar() +
+  scale_x_discrete(drop = FALSE)
+```
+
+`dplyr::group_by()` also drop groups that has no values but we can force it to keep them
+```{r}
+health <- tibble(
+  name   = c("Ikaia", "Oletta", "Leriah", "Dashay", "Tresaun"),
+  smoker = factor(c("no", "no", "no", "no", "no"), levels = c("yes", "no")),
+  age    = c(34, 88, 75, 47, 56),
+)
+
+health
+
+health |> 
+  group_by(smoker) |> 
+  summarize(
+    n = n(),
+    mean_age = mean(age),
+    min_age = min(age),
+    max_age = max(age),
+    sd_age = sd(age)
+  )
+
+health |> 
+  group_by(smoker, .drop = FALSE) |> 
+  summarize(
+    n = n(),
+    mean_age = mean(age),
+    min_age = min(age),
+    max_age = max(age),
+    sd_age = sd(age)
+  )
+```
+

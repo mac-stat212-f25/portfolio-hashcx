@@ -1,0 +1,83 @@
+---
+title: "r4ds-ch25"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+## Vector Functions
+
+```{r}
+df <- tibble(
+  a = rnorm(5),
+  b = rnorm(5),
+  c = rnorm(5),
+  d = rnorm(5)
+)
+df
+```
+
+```{r}
+x <- c(1:10, Inf)
+x
+```
+
+```{r}
+first_upper <- function(x) {
+  # x
+  str_sub(x, 1, 1)
+  # x
+  # "Hi"
+}
+
+first_upper("Hello")
+```
+
+```{r}
+clean_num <- function(x) {
+  is_pct <- str_detect(x, "%")
+  num <- x |> 
+    str_remove_all("%") |> 
+    str_remove_all(",") |> 
+    str_remove_all("\\$") |> 
+    as.numeric()
+  
+  if_else(is_pct, num / 100, num)
+}
+
+clean_num("123.4")
+clean_num("45.5%")
+```
+
+## Data Frame Functions
+
+Tidy Evaluation makes it easy when piping but when using in function we need to use embracing `{{ }}` to tell tidy not to use the literal variable name but to look what is stored in it.
+
+```{r}
+grouped_mean <- function(df, group_var, mean_var) {
+  df |> 
+    group_by(group_var) |> 
+    summarize(mean(mean_var))
+}
+```
+
+```{r}
+diamonds |> 
+  grouped_mean(cut, carat)
+```
+
+```{r}
+grouped_mean <- function(df, group_var, mean_var) {
+  df |> 
+    group_by({{ group_var }}) |> 
+    summarize(mean({{ mean_var }}))
+}
+```
+
+```{r}
+diamonds |> 
+  grouped_mean(cut, carat)
+```
+
