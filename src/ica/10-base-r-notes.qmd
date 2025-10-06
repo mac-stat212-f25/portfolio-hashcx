@@ -127,7 +127,7 @@ length(df) # number of "elements" in a data frame is the number of "columns"
 
 ## Base R Subsetting 
 
-The content here comes from [Chapter 27](https://r4ds.hadley.nz/base-r) of R4DS, with some small additions.
+The content here comes from Chapter 27 of R4DS, with some small additions.
 
 ## Selecting elements with `[` 
 
