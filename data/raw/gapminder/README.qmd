@@ -1,0 +1,1 @@
+The files in this folder were copied from R for Data Science GitHub repository https://github.com/hadley/r4ds/tree/main/data/gapminder
