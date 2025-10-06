@@ -1,0 +1,259 @@
+---
+title: "r4ds-ch26"
+---
+
+```{r}
+# provides a number of deeply nested lists originally mostly captured from web
+# API
+library(repurrrsive)
+
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(gapminder)
+```
+
+## Exploring `unnest_wider`
+
+`unnest_winder()` takes each element of a list-column and makes a new column.
+
+```{r}
+# list data
+data(package = "repurrrsive")$results[, c("Item", "Title")]
+```
+
+```{r}
+gh_users
+```
+
+```{r}
+gh_users |> str()
+```
+
+```{r}
+gh_users
+```
+
+
+```{r}
+gh_users |> tibble()
+```
+
+```{r}
+gh_users |> tibble() |> pull(1)
+```
+
+**Functional Programming** tools are called so because they are built around functions that take other functions as input.
+
+`dplyr` & `purrr` will be used in this chapter.  Both are part of the `tidyverse`
+
+```{r}
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+df
+```
+
+
+```{r}
+df |> summarise(
+  n = n(),
+  a = median(a),
+  b = median(b),
+  c = median(c),
+  d = median(d)
+)
+```
+
+
+This is better
+```{r}
+df |> summarise(
+  n = n(),
+  across(a:d, median)
+)
+```
+
+```{r}
+df |> 
+  mutate(a = round(a, 0)) |> 
+  group_by(a) |> 
+  summarise(across(everything(), median))
+```
+
+```{r}
+df |> 
+  summarise(
+    across(where(is.numeric), max)
+  )
+```
+
+```{r}
+df |> 
+  mutate(across(everything(), as.character)) |> 
+  summarise(across(is.character, str_flatten))
+```
+
+Passing additional argument to function passed to `across`
+```{r}
+df |> 
+  mutate(across(everything(), as.character)) |> 
+  summarise(across(is.character, function(x) str_flatten(x, "\n"))) |> 
+  str_view()
+```
+
+Anonymous functions (aka throw away function, lambda expression)
+```{r}
+df |> 
+  mutate(across(everything(), as.character)) |> 
+  summarise(across(is.character, \(x) str_flatten(x, "\n"))) |> 
+  str_view()
+```
+
+
+```{r}
+df |> 
+  mutate(across(everything(), as.character)) |> 
+  summarise(
+    across(is.character, list(
+      flat = \(x) str_flatten(x, "\n"),
+      na_count = \(x) sum(is.na(x)))
+      )
+    )
+```
+
+
+`coalesce(x, 0)` replace NA's with 0
+
+```{r}
+expand_dates <- function(df) {
+  df |> 
+    mutate(across(is.Date, list(
+      year = year,
+      month = month,
+      day = day
+    )))
+}
+
+df_date <- tribble(
+  ~name, ~dob, ~sd,
+  "am", ymd("2000-01-01"), ymd("2025-01-01"),
+  "za", ymd("2000-06-06"), ymd("2025-06-06")
+)
+
+df_date |> 
+  expand_dates()
+
+```
+
+### 26.2.8 Exercises
+
+1.1 Computing the number of unique values in each column of `palmerpenguins::penguins`
+
+```{r}
+palmerpenguins::penguins
+```
+
+
+```{r}
+palmerpenguins::penguins |> 
+  summarize(across(everything(), \(x) length(unique(x))))
+```
+
+```{r}
+palmerpenguins::penguins |> 
+  summarise(unique(bill_length_mm))
+```
+
+1.2 Computing the mean of every column in `mtcars`
+
+```{r}
+mtcars
+```
+
+```{r}
+mtcars |> 
+  summarize(across(everything(), mean))
+```
+
+1.3 Grouping `diamonds` by `cut`, `clarity`, and `color` then counting the number of observations and computing the mean of each numeric column.
+
+```{r}
+diamonds
+```
+
+
+```{r}
+diamonds |> 
+  group_by(cut, clarity, color) |> 
+  summarise(across(is.numeric, list(
+    n = length,
+    mean = mean
+  )))
+```
+
+
+```{r}
+diamonds |> 
+  group_by(cut, clarity, color) |> 
+  summarise(
+    n = n(),
+    mean = mean(carat, na.rm = TRUE)
+  ) |> 
+  arrange(n)
+```
+
+2. What happens if you use a list of functions in `across()`, but don’t name them? How is the output named?
+
+```{r}
+diamonds |> 
+  group_by(cut, clarity, color) |> 
+  summarise(across(is.numeric, list(
+    length,
+    mean
+  )))
+```
+
+
+3. Adjust `expand_dates()` to automatically remove the date columns after they’ve been expanded. Do you need to embrace any arguments?
+
+
+
+```{r}
+expand_dates <- function(df) {
+  df |> 
+    mutate(across(is.Date, list(
+      year = year,
+      month = month,
+      day = day
+    ))) |> 
+    select(-is.Date)
+}
+
+df_date <- tribble(
+  ~name, ~dob, ~sd,
+  "am", ymd("2000-01-01"), ymd("2025-01-01"),
+  "za", ymd("2000-06-06"), ymd("2025-06-06")
+)
+
+df_date |> 
+  expand_dates()
+```
+
+```{r}
+sample(0:100, size=8*6, replace = TRUE) |> 
+  matrix(nrow = 6, ncol = 8) |> 
+  as.data.frame()
+```
+
+`across()` repeat a transformation on multiple columns.  The repetition here is implicit (not explicit)
+
+## 26.3  Reading multiple files
+
+```{r}
+gapminder
+```
+
