@@ -30,7 +30,7 @@ Recall that:
 - Then translate each step to code.
 
 ```{r}
-
+library(tidyverse)
 ```
 
 ## Iteration with `purrr` 
@@ -63,7 +63,8 @@ results1 <- bench::mark(
     x <- c(x, i)
   }
 )
-
+```
+```{r}
 # Example 2: For loop with a storage container!
 x <- vector('integer', length = 1e5)
 results2 <- bench::mark(
@@ -71,21 +72,30 @@ results2 <- bench::mark(
     x[i] <- i
   }
 )
+```
 
+```{r}
 # Example 3: purrr::map()
 results3 <- bench::mark(purrr::map_int(1:1e5, ~.x))
+```
 
-
+```{r}
 # Example 4: Standard R Function/Operator
 results4 <- bench::mark(seq(1,1e5))
 ```
 
 ```{r}
-# Compile Results
-bind_rows(results1, results2, results3, results4) |>
-  mutate(type = c("for_loop_no_storage", "for_loop_with_storage", "purrr_map", "standard_func")) |>
-  select(type, mem_alloc, total_time)  |> print()
+results5 <- bench::mark(1:1e5)
+```
 
+
+
+
+```{r}
+# Compile Results
+bind_rows(results1, results2, results3, results4, results5) |>
+  mutate(type = c("for_loop_no_storage", "for_loop_with_storage", "purrr_map", "standard_func", "standard_slice")) |>
+  select(type, mem_alloc, total_time)  |> print()
 ```
 
 ## Iteration with `map` 
