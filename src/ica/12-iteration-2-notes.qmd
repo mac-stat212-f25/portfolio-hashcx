@@ -136,6 +136,7 @@ What happened!?
 `map_chr()` was expecting to create a character vector with one element per element (column) in `diamonds`. But something happened in column 2 with the `cut` variable. 
 
 
+
 Let's figure out what happened:
 
 ```{r class_diamonds_cut}
@@ -143,6 +144,13 @@ class(diamonds$cut)
 ```
 
 Ah! `cut` has 2 classes. In this case, `map()` (which returns a list) is the best option because some variables have multiple classes:
+
+```{r}
+map_chr(diamonds, \(x) {
+  class(x) |> paste(collapse = " ")
+})
+```
+
 
 ```{r purrr_col_classes_no_error}
 map(diamonds, class)
@@ -179,6 +187,22 @@ map_int(diamonds |> select(!where(is.numeric)), n_distinct)
     
     
 Once you've done that with `map()`, write a `for` loop to achieve the same result. Which do you prefer in terms of ease of code writing and readability?
+
+```{r}
+sum_stats <- function(x) {
+  tibble(
+    mean = mean(x, na.rm = TRUE)
+  )
+}
+```
+
+```{r}
+diamonds |> 
+  select(where(is.numeric)) |> 
+  map(sum_stats) |> 
+  bind_rows() |> 
+  mutate(variable = colnames(diamonds |> select(where(is.numeric))))
+```
 
 
 
@@ -247,7 +271,14 @@ pmap_chr(string_data, str_replace_all, string = "ppp nnn hhh")
 - Use different arguments for `start` and `end` but a fixed `string`
 
 ```{r}
+str_data_2 <- tibble(
+  string = c("Amin", "Macalester", "MSCS"),
+  start = c(1, 2, 1),
+  end = c(3, 4, 4)
+)
 
+pmap(str_data_2, str_sub)
+pmap(str_data_2 |> select(-string), str_sub, string = "this is a test")
 ```
 
 2. Last class we worked on an extended exercise where our goal was to write a series of functions and a `for` loop to repeat linear model fitting under different "settings" (removal of outliers, model formula choice). 
@@ -286,7 +317,7 @@ fit_model <- function(data, mod_formula, remove_outliers) {
 }
 
 # use pmap()
-
+pmap(df_arg_combos, fit_model, data = diamonds)
 
 
 
@@ -313,9 +344,16 @@ by_clarity
 ```
 
 ```{r}
+diamonds |> 
+  group_by(clarity) |>
+  nest()
+```
+
+
+```{r}
 # Create a variable with a image path
 by_clarity <- by_clarity |> 
-  mutate(path = str_glue("diamonds-{clarity}.png"))
+  mutate(path = str_glue("diamonds/diamonds-{clarity}.png"))
 
 by_clarity
 ```
@@ -336,7 +374,7 @@ by_clarity <- by_clarity |>
 walk2( 
   by_clarity$path,
   by_clarity$plot,
-  function(path, plot){ ggsave(path, plot, width = 6, height = 6)}
+  function(pt, pl){ ggsave(pt, pl, width = 6, height = 6)}
 )
 
 ```
