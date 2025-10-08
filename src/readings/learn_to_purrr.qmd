@@ -7,6 +7,33 @@ This is a summary of the page: https://rebeccabarter.com/blog/2019-08-19_purrr
 The `map` function introduced in `Purrr` is tidyverse's answer to base R's apply functions but more in line with functional programming practices.
 
 https://rstudio.github.io/cheatsheets/purrr.pdf
+
+```{r}
+(x <- list(a = 1:10, b = 11:20, c = 21:30))
+x[[1]][2]
+
+(x2 <-  list(a = list(a1 = 1:10, a2 = 31:40), b = 11:20, c = 21:30))
+
+(df2 <- data.frame(x2))
+
+(df <- data.frame(x))
+```
+
+```{r}
+df |> 
+  summarize(
+    mean = mean(a)
+  )
+
+df |> 
+summarize(across(everything(), mean))
+
+df |> 
+  map(mean)
+```
+
+
+
 ```{r}
 # named list
 x <- list(a = 1:10, b = 11:20, c = 21:30)
@@ -41,6 +68,16 @@ l1
 
 map(l1, sort, decreasing = FALSE)
 ```
+
+```{r}
+x <- list(a = 1:10, b = 11:20, c = 21:30)
+l1 <- list(x = c("a", "b"), y = c("c", "d"))
+
+map_int(x, length)
+map_chr(l1, paste, collapse = "")
+```
+
+
 
 https://jennybc.github.io/purrr-tutorial/bk00_vectors-and-lists.html
 ```{r}
