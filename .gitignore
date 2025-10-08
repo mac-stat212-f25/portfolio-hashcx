@@ -69,3 +69,6 @@ _freeze/
 *.log
 *.aux
 *.toc
+/src/ica/04_adv_maps/data
+/src/ica/04_adv_maps/figures
+/src/ica/diamonds
