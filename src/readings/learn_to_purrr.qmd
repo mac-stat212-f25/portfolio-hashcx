@@ -86,3 +86,60 @@ unlist(c(1:10, 4, 7)) |>
   map(.f = addTen)
 ```
 
+```{r}
+# to download the data directly:
+gapminder_orig <- read.csv("https://raw.githubusercontent.com/rlbarter/personal-website-quarto/main/blog/data/gapminder.csv")
+# define a copy of the original dataset that we will clean and play with 
+gapminder <- gapminder_orig
+```
+
+```{r}
+dim(gapminder)
+```
+
+```{r}
+head(gapminder)
+```
+
+```{r}
+gapminder |> map(class)
+gapminder |> map_chr(class)
+gapminder |> map_df(class)
+```
+
+```{r}
+gapminder |> map(n_distinct)
+gapminder |> map_dbl(n_distinct)
+gapminder |> map_df(n_distinct)
+```
+
+```{r}
+gapminder |> 
+  map_df(~data.frame(n_distinct = n_distinct(.x),
+                     class = class(.x)))
+```
+
+```{r}
+gapminder |> 
+  map_df(~data.frame(n_distinct = n_distinct(.x),
+                     class = class(.x)),
+         .id = "variable")
+```
+
+[[]] corresponds to tidyverse `pluck()`
+
+```{r}
+gapminder_nested <- gapminder %>% 
+  group_by(continent) %>% 
+  nest()
+gapminder_nested
+
+gapminder_nested$data[[1]]
+gapminder_nested |> pluck("data", 1)
+```
+
+```{r}
+tibble(vec_col = 1:10) |> 
+  mutate(vec_sum = sum(vec_col))
+```
+
