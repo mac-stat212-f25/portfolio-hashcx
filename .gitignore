@@ -72,3 +72,5 @@ _freeze/
 /src/ica/04_adv_maps/data
 /src/ica/04_adv_maps/figures
 /src/ica/diamonds
+src/ica/census_api_key.txt
+src/ica/nyt_api_key.txt
