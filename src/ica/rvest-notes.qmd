@@ -1,0 +1,113 @@
+---
+title: "rvest-notes"
+format: html
+---
+
+<https://cran.r-project.org/web/packages/rvest/vignettes/rvest.html>
+
+```html
+<html>
+<head>
+  <title>Page title</title>
+</head>
+<body>
+  <h1 id='first'>A heading</h1>
+  <p>Some text &amp; <b>some bold text.</b></p>
+  <img src='myimg.png' width='100' height='100'>
+</body>
+```
+
+```{r}
+library(rvest)
+```
+
+## Read
+
+```{r}
+html <- read_html("https://www.macalester.edu/")
+html <- read_html("https://hashcx.github.io/")
+class(html)
+str(html)
+head(html)
+View(html)
+View(html$node)
+```
+
+```{r}
+html$doc
+```
+
+## Select Elements
+```{r}
+html |> html_elements("h1")
+```
+
+```{r}
+html |> html_elements("p")
+```
+
+```{r}
+html |> html_elements("a")
+```
+
+```{r}
+html |> html_elements(".sidebar")
+```
+
+
+```{r}
+html |> html_elements("li")
+```
+
+## Extract Element Content
+
+`html_text2` ignore extra spaces similar to browsers but `html_text2` does not
+
+
+```{r}
+html |> 
+  html_elements("h1") |> 
+  html_text2()
+```
+
+```{r}
+html |> 
+  html_elements("h2") |> 
+  html_text2()
+```
+
+```{r}
+html |> 
+  html_elements("li") |> 
+  html_text2()
+```
+
+```{r}
+html |> 
+  html_elements("p") |> 
+  html_text2() |> 
+  cat(sep = "\n\n")
+```
+
+
+## Extract Element Attribute
+
+```{r}
+html |> 
+  html_elements("a") |> 
+  html_attr("href")
+```
+
+## Extract Tables
+
+```{r}
+html <- read_html("https://afd.calpoly.edu/web/sample-tables")
+```
+
+
+```{r}
+html |> 
+  html_nodes("table") |> 
+  html_table()
+```
+
