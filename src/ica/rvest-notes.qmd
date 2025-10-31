@@ -19,6 +19,7 @@ format: html
 
 ```{r}
 library(rvest)
+library(tidyverse)
 ```
 
 ## Read
@@ -109,5 +110,44 @@ html <- read_html("https://afd.calpoly.edu/web/sample-tables")
 html |> 
   html_nodes("table") |> 
   html_table()
+```
+
+
+## ICA
+https://hash-mac.github.io/stat212site-f25/activities/15-scraping.html
+
+```{r}
+nih <- read_html("https://www.nih.gov/news-events/news-releases")
+```
+
+```{r}
+article_titles <- nih |>
+    html_elements(".thumbnail-teaser__heading") |>
+    html_text()
+head(article_titles)
+```
+
+```{r}
+dates_abstract <- nih |>
+    html_elements(".thumbnail-teaser__description") |>
+    html_text()
+head(dates_abstract)
+```
+
+```{r}
+articles <- data.frame(
+  title = article_titles,
+  dates_abstract = dates_abstract
+)
+articles
+```
+
+```{r}
+articles |> 
+  separate_wider_delim(
+    delim = " — ", 
+    cols = dates_abstract, 
+    names = c("pub_date", "abstract")) |> 
+  mutate(pub_date = mdy(pub_date))
 ```
 
