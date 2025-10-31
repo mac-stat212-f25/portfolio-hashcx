@@ -1,0 +1,111 @@
+---
+title: "13-apis-1"
+---
+
+
+```{r}
+URLencode("test url")
+```
+
+```{r}
+URLdecode("test%20url")
+```
+Decode breaks if the decoded value is out of range
+
+```{r}
+URLdecode("test%ggL")
+```
+
+```{r}
+library(urltools)
+```
+
+```{r}
+url_decode("test%ggL")
+```
+
+```{r}
+url_encode("test .doc")
+```
+
+```{r}
+url <- url_parse("https://hashcx.io/notebooks")
+class(url)
+str(url)
+```
+
+```{r}
+url_part = list(
+  scheme = "https",
+  domain = "hashcx.io",
+  port = NA,
+  parameter = NA,
+  fragment = NA,
+  path = "notebook")
+url_part
+
+url_compose(url_part)
+```
+
+```{r}
+library(tidyverse)
+suffix_dataset |> 
+  separate(col = suffixes, sep = "\\.", into = c("p1", "p2")) |> 
+  count(p2) |> 
+  arrange(desc(n))
+```
+
+```{r}
+suffix_refresh()
+```
+
+
+```{r}
+domain_name <- domain("https://en.wikipedia.org/wiki/Article")
+domain(domain_name)
+host_extract(domain_name)
+```
+
+```{r}
+tld_dataset
+```
+
+```{r}
+library(jsonlite)
+```
+
+```{r}
+json <- read_file("exa.json")
+
+json_obj <- fromJSON(json)
+class(json_obj)
+str(json_obj)
+
+```
+
+```{r}
+json <-
+'[
+  {"Name" : "Mario", "Age" : 32, "Occupation" : "Plumber"}, 
+  {"Name" : "Peach", "Age" : 21, "Occupation" : "Princess"},
+  {},
+  {"Name" : "Bowser", "Occupation" : "Koopa"}
+]'
+
+(json_obj <- fromJSON(json, simplifyVector = FALSE))
+```
+https://cran.r-project.org/web/packages/jsonlite/vignettes/json-mapping.pdf
+
+```{r}
+txt = "[12, 3, 7]"
+x <- fromJSON(txt)
+is(x)
+class(x)
+str(x)
+```
+
+
+# References
+
+- https://www.tutorialspoint.com/html/understanding_url_tutorial.htm
+- https://cran.r-project.org/web/packages/urltools/vignettes/urltools.html

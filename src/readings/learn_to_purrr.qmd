@@ -1,0 +1,182 @@
+---
+title: "learn_to_purrr"
+---
+
+This is a summary of the page: https://rebeccabarter.com/blog/2019-08-19_purrr
+
+The `map` function introduced in `Purrr` is tidyverse's answer to base R's apply functions but more in line with functional programming practices.
+
+https://rstudio.github.io/cheatsheets/purrr.pdf
+
+```{r}
+(x <- list(a = 1:10, b = 11:20, c = 21:30))
+x[[1]][2]
+
+(x2 <-  list(a = list(a1 = 1:10, a2 = 31:40), b = 11:20, c = 21:30))
+
+(df2 <- data.frame(x2))
+
+(df <- data.frame(x))
+```
+
+```{r}
+df |> 
+  summarize(
+    mean = mean(a)
+  )
+
+df |> 
+summarize(across(everything(), mean))
+
+df |> 
+  map(mean)
+```
+
+
+
+```{r}
+# named list
+x <- list(a = 1:10, b = 11:20, c = 21:30)
+x
+x |> class()
+x |> str()
+x$a
+
+# return list
+x[1] |> str()
+x["a"] |> str()
+
+# return vector
+x[["a"]] |> str()
+x[[1]]
+
+x2 <- list(1:10, 11:20, 21:30)
+x2 |> class()
+x2 |> str()
+x2[[1]] |> str()
+x2[1] |> str()
+
+x2
+
+xl <- unlist(x)
+```
+
+```{r}
+library(purrr)
+l1 <- list(x = c("b", "a"), y = c("d", "c"))
+l1
+
+map(l1, sort, decreasing = FALSE)
+```
+
+```{r}
+x <- list(a = 1:10, b = 11:20, c = 21:30)
+l1 <- list(x = c("a", "b"), y = c("c", "d"))
+
+map_int(x, length)
+map_chr(l1, paste, collapse = "")
+```
+
+
+
+https://jennybc.github.io/purrr-tutorial/bk00_vectors-and-lists.html
+```{r}
+(v_log <- c(TRUE, FALSE))
+is.logical(v_log)
+is.numeric(v_log)
+is.factor(v_log)
+is.integer(v_log)
+v_log[-3:-1]
+
+# ?rlang::is_logical
+
+(l <- list(a = 1:3))
+is.logical(l)
+is.numeric(l)
+is.list(l)
+is.atomic(l)
+is.numeric(l$a)
+is.atomic(l$a)
+is.double(l$a)
+is.integer(l$a)
+
+```
+Back to https://rebeccabarter.com/blog/2019-08-19_purrr
+```{r}
+addTen <- function(.x) {
+  return(.x + 10)
+}
+```
+
+```{r}
+library(tidyverse)
+map(.x = c(1:10, 4, 7),
+    .f = addTen)
+
+map(.x = list(1:10, 4, 7),
+    .f = addTen)
+
+map(.x = vector(mode = "logical", 10),
+    .f = addTen)
+
+unlist(c(1:10, 4, 7)) |> 
+  map(.f = addTen)
+```
+
+```{r}
+# to download the data directly:
+gapminder_orig <- read.csv("https://raw.githubusercontent.com/rlbarter/personal-website-quarto/main/blog/data/gapminder.csv")
+# define a copy of the original dataset that we will clean and play with 
+gapminder <- gapminder_orig
+```
+
+```{r}
+dim(gapminder)
+```
+
+```{r}
+head(gapminder)
+```
+
+```{r}
+gapminder |> map(class)
+gapminder |> map_chr(class)
+gapminder |> map_df(class)
+```
+
+```{r}
+gapminder |> map(n_distinct)
+gapminder |> map_dbl(n_distinct)
+gapminder |> map_df(n_distinct)
+```
+
+```{r}
+gapminder |> 
+  map_df(~data.frame(n_distinct = n_distinct(.x),
+                     class = class(.x)))
+```
+
+```{r}
+gapminder |> 
+  map_df(~data.frame(n_distinct = n_distinct(.x),
+                     class = class(.x)),
+         .id = "variable")
+```
+
+[[]] corresponds to tidyverse `pluck()`
+
+```{r}
+gapminder_nested <- gapminder %>% 
+  group_by(continent) %>% 
+  nest()
+gapminder_nested
+
+gapminder_nested$data[[1]]
+gapminder_nested |> pluck("data", 1)
+```
+
+```{r}
+tibble(vec_col = 1:10) |> 
+  mutate(vec_sum = sum(vec_col))
+```
+

@@ -1,0 +1,86 @@
+---
+title: "r4ds-ch21-dbs"
+format: html
+---
+
+```{r}
+library(dbplyr)
+library(DBI)
+library(tidyverse)
+```
+
+## Why DB Fast
+
+- Databases are fast because almost always they have indexes which makes looking up rows very fast (there is no need to look at every single row, similar to the index in a book).
+- **data frame** & **tibble** (from **tidyverse**) does not have indexes but **data.table** package do (this is why they are so fast)
+
+
+## Create DB
+
+Create a duckdb database (which is a high-performance database) inside the duckdb folder by connecting into it
+```{r}
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "duckdb")
+con
+```
+
+
+## Load Data
+
+Store some data into it
+```{r}
+dbWriteTable(con, "mpg", ggplot2::mpg)
+dbListTables(con)
+```
+
+Store some more data into it
+```{r}
+dbWriteTable(con, "diamonds", ggplot2::diamonds)
+dbListTables(con)
+```
+
+Note: Instead of using `dbWriteTable` to load data into the database, look into `duckdb_read_csv()` and `duckdb_register_arrow()` for more efficient and quick ways without first loading data into R.
+
+
+## Retreive Tables
+
+```{r}
+print_all <- function(x) {
+  print(class(x))
+  print(str(x))
+  print(x)
+}
+```
+
+
+```{r}
+con |> 
+  dbReadTable("mpg") |> 
+  print_all()
+```
+
+```{r}
+table_num = 1
+con |> 
+  dbReadTable(con |> dbListTables() |> {\(x) x[table_num]}()) |> 
+  print_all()
+```
+
+
+## Query DB
+
+```{r}
+sql <- "
+SELECT *
+FROM diamonds
+WHERE color = 'E' AND cut = 'Ideal' AND price > 10000
+ORDER BY price DESC
+"
+con |> 
+  dbGetQuery(sql)
+```
+
+
+## References
+
+- To learn more about how `NULL`s work, check Markus Winan [The Three-Valued Logic of SQL](https://modern-sql.com/concept/three-valued-logic)
+- When keeping a complete dataset for analysis that needs to be navigated via a complex network of tables connected by primary and foreign keys, check the [dm package](https://cynkra.github.io/dm/)--it can automatically determine the connections between tables using the constraints that DBAs often supply, visualize the connections so you can see what’s going on, and generate the joins you need to connect one table to another.

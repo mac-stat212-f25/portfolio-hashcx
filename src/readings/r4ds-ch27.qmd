@@ -1,0 +1,60 @@
+---
+title: "r4ds-ch27"
+---
+
+Covered Topics
+
+- Subsetting with `[` to extract elements from vectors, `x[i]` and data frames `x[i, j]`
+- Subsetting with `[[` & `$` to select a single element
+- apply function
+- `for` loop
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+x <- 20:30
+x
+x[x %% 5 == 0]
+x[x > mean(x)]
+x[1:5]
+```
+
+```{r}
+x = c(a = 1, b = 2, c = 3)
+x
+x['a']
+x[c('a', 'b')]
+x[c('a', 'b', 'b', 'a')]
+x[]
+```
+
+```{r}
+df <- tibble(
+  x = 1:3,
+  y = c("A", "B", "C"),
+  z = runif(3)
+)
+df
+
+df[1]
+df[,1]
+df[1,]
+df[1,1]
+df[, "x"]
+df[, c("x", "y")]
+df[df["x"] > 1, ]
+df[df$x > 1, ]
+```
+
+`df[df$x > 1, 1]` we need to use `$` to extract variable `x` from a the dataframe `df` because `[` does not use **tidy evaluation** and hence we need to explicitly mention the source of the `x` variable
+
+**tibble** is **data frames** with some tweaks to make out life a little easier. However, **tibble** is **data frames** can be used interchangeably.
+
+- if `df` is `data.frame`, `df[, cols]` and `cols` is 
+  - single column --> returns vector
+  - multiple columns --> returns data frame
+  - to force it to always return data.frame, use `df[, cols, drop = FALSE]`
+- if `df` is `tibble`, `[` always return tibble
