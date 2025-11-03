@@ -1,0 +1,31 @@
+---
+title: "profvis"
+format: html
+---
+
+Trying [profvis](https://profvis.r-lib.org/)
+
+```{r}
+library(profvis)
+```
+
+Example for package website
+
+```{r}
+f <- function() {
+  pause(0.1)
+  g()
+  h()
+}
+
+g <- function() {
+  pause(0.1)
+  h()
+}
+h <- function() {
+  pause(0.1)
+}
+
+profvis(f())
+```
+
