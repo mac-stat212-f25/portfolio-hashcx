@@ -1,3 +1,3 @@
-# Portfolio Template
+# COMP/STAT212 Portfolio, Fall 2025
 
-A portfolio template for Macalester College's COMP/STAT112 Intermediate Data Science course, forked from https://github.com/hash-tpl/qb for style and settings. See the parent repo's README for rendering info.
+This repo belongs to <Student Name>.  The repo contains the code for my portfolio website for COMP/STAT212 Intermediate Data Science course taken at Macalester in Fall 2025.  The portfolio website is based on the Quarto Book system.

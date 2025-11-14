@@ -1,0 +1,415 @@
+---
+title: "r4ds-ch15"
+---
+
+## Basics
+
+Regular Expression (regex or regexp for short, pronounced either with hard-g (reg-x) or soft-g (rej-x)) used to describe patterns within strings
+
+```{r}
+library(tidyverse)
+library(babynames)
+```
+
+```{r}
+data(package = .packages(all.available = TRUE))$result |> 
+  as.data.frame() |> 
+  select(-LibPath)
+```
+
+```{r}
+data(package = .packages(all.available = TRUE))$result |> 
+  as.data.frame() |> 
+  select(-LibPath) |> 
+  count(Package, sort = TRUE)
+```
+
+```{r}
+data(package = .packages(all.available = TRUE))$result |> 
+  as.data.frame() |> 
+  select(-LibPath) |> 
+  group_by(Package) |> 
+  summarize(
+    n = n(),
+    ds = str_flatten(Item, ", ")
+  ) |> 
+  arrange(desc(n))
+```
+
+
+```{r}
+data(package = "stringr")$result |> 
+  as.data.frame()
+```
+
+`str_view` when used with 2 arguments, highlight `arg2` when it appears in `arg1`
+```{r}
+fruit |> 
+  as.data.frame() |> 
+  mutate(ber = str_view(fruit, "berry", match = NA)) |> 
+  select(ber) |> 
+  as.vector()
+```
+
+- Letters and numbers are **literal character** ==> match exactly
+- `.`, `?`, `+`, `*`,  `[`, `]` are **metacharacter** ==> has special meaning ==> do not match exactly ==> need to escape them if want to match exactly
+- `.` match any character except new line `\n`, eg, `a.` match any string that contains an `a` followed by any character
+- `?`, `+`, `*`, are called **quantifiers**, ie, controls how many times a pattern can match
+  - `?` let a pattern optional, 0 or 1
+  - `+` let a pattern repeat, ie, 1+
+  - `*` let a pattern be optional or repeat, ie, 0+
+
+- `[]` define a **character class**, ie, match any character in the class
+- `[^]` define a character class, ie, match any character not in the class
+```{r}
+# find all words containing an "x" surrounded by vowels
+str_view(words, "[aeiou]x[aeiou]")
+```
+```{r}
+# find all words containing a "y" surrounded by consonants
+str_view(words, "[^aeiou]y[^aeiou]")
+```
+
+- `|` is called **alternation**, ie, to pick between 1+ alternative patterns
+```{r}
+# look for fruits containing any of the following alternatives
+str_view(fruit, "apple|melon|nut")
+```
+```{r}
+# look for fruits containing any of the following repeated vowels
+str_view(fruit, "aa|ee|ii|oo|uu")
+```
+
+```{r}
+# which names contain aa
+babynames |> 
+  select(name) |> 
+  distinct(name) |> 
+  filter(str_detect(name, "aa"))
+```
+
+```{r}
+# which names contain aa
+babynames |> 
+  select(name) |> 
+  distinct(name) |> 
+  pull(name) |> 
+  str_subset("aa")
+```
+
+```{r}
+# where are the names contain aa located
+babynames |> 
+  select(name) |> 
+  distinct(name) |> 
+  pull(name) |> 
+  str_which("aa")
+```
+
+
+```{r}
+# options(max.print = .Machine$integer.max)
+options(max.print = 1000)
+
+# how many names contain aa
+babynames |> 
+  select(name) |> 
+  distinct(name) |> 
+  pull(name) |> 
+  str_count("aa")
+```
+
+Each match start at the end of the previous match, regex matches NEVER overlap, eg, `aba` appears in `abababa` 2 NOT 3
+```{r}
+ab <- "abababa"
+str_view(ab, "aba")
+str_count(ab, "aba")
+```
+
+RegEx are case sensitive, we can ask it to ignore cases.
+```{r}
+babynames |> 
+  count(name) |> 
+  mutate(
+    vowels = str_count(name, regex("[aeiou]", ignore_case = TRUE)),
+    consonants = str_count(name, regex("[^aeiou]", ignore_case = TRUE))
+  )
+```
+
+```{r}
+# better
+babynames |> 
+  count(name) |> 
+  mutate(
+    name = str_to_lower(name),
+    vowels = str_count(name, "[aeiou]"),
+    consonants = str_count(name, "[^aeiou]")
+  )
+```
+
+`seperate_wider_regex()` is in `tidyr` because it operate on columns of data frames, rather than individual vectors.  Use a name for the content you want to keep.
+```{r}
+df <- tribble(
+  ~str,
+  "<Sheryl>-F_34",
+  "<Kisha>-F_45", 
+  "<Brandon>-N_33",
+  "<Sharon>-F_38", 
+  "<Penny>-F_58",
+  "<Justin>-M_41", 
+  "<Patricia>-F_84", 
+)
+df
+
+df |> 
+  separate_wider_regex(
+    str, 
+    patterns = c(
+      "<",
+      name = "[a-zA-Z]+", 
+      ">-",
+      gender = ".",
+      "_",
+      age = "[0-9]+"
+    )
+  )
+```
+
+
+
+## Escaping
+To match metacharacters that would otherwise be treated specially
+
+Because `\` is used as an escape character in strings, to use escape in regular expression, we use `\\` followed by what we want to escape, eg, `\\.` which is the RegEx string `\.`
+```{r}
+dot <- "\\."
+str_view(dot)
+
+str_view(c("abc", "a.c", "bef"), "a\\.c")
+```
+
+If we want to match `\`, we need the following RegEx string `\\\\`.
+```{r}
+x <- "a\\b"
+str_view(x)
+str_view(x, "\\\\")
+```
+
+Alternatively, we can use the raw strings
+```{r}
+dot <- "\\."
+str_view(dot)
+
+str_view(c("abc", "a.c", "bef"), r"(a\.c)")
+```
+
+```{r}
+x <- "a\\b"
+str_view(x)
+str_view(x, r"(\\)")
+```
+
+Instead of using `\` to escape `.`, `$`, `|`, `*`, `+`, `?`, `{`, `}`, `(`, `)`, we can use character classes: `[.]`, `[$]`, ...
+```{r}
+str_view(c("abc", "a.c", "a*c", "a c"), "a[.]c")
+```
+```{r}
+str_view(c("abc", "a.c", "a*c", "a c"), ".[*]c")
+```
+
+
+
+## Anchoring
+Allow you to match the start or end of the string
+
+To match the whole word, use `^` and `$`
+```{r}
+str_view(fruit, "apple")
+str_view(fruit, "^apple$")
+```
+
+To match word boundary, we use `\b`
+```{r}
+x <- c("summary(x)", "summarize(df)", "rowsum(x)", "sum(x)")
+str_view(x, "sum")
+str_view("- - - - -")
+str_view(x, "\\bsum\\b")
+```
+When used alone, anchors will produce zero-width match
+```{r}
+str_view("abc", c("^", "$", "\\b"))  # w/ recycle
+str_view("----")
+str_view(c("abc", "abc", "abc"), c("^", "$", "\\b")) # w/o recycle
+```
+
+Hence, this is what will happen when replacing standalone anchors
+```{r}
+str_replace_all("abc", c("^", "$", "\\b"), "***")
+```
+
+
+
+## Character Classes & Their Shortcut
+Allow you to match any character from a set
+
+
+## Quantifiers
+Control how many times a pattern can match
+
+
+
+## Precedence
+
+Similar to operator precedence rules, eg, PEMDAS and BEDMAS, ReEx has its own precedence rules: quantifiers has higher precedence and alternative has low precedence.
+- `ab+` is equivalent to `a(b+)`
+- `^a|b$` is equivalent to `(^a)|(b$)`
+
+
+
+## Grouping
+To group components of the pattern
+
+
+## Pattern Control (Flgs)
+
+### ignore_case
+```{r}
+bananas <- c("banana", "Banana", "BANANA")
+str_view(bananas, "banana")
+str_view("----")
+str_view(bananas, regex("banana", ignore_case = TRUE))
+```
+
+### dotall
+lets `.` match everything, including `\n`
+```{r}
+x <- "Line 1\nLine 2\nLine 3"
+str_view(x, ".Line")
+str_view("---")
+str_view(x, regex(".Line", dotall = TRUE))
+```
+
+### mutiline
+makes ^ and $ match the start and end of each line rather than the start and end of the complete string
+```{r}
+x <- "Line 1\nLine 2\nLine 3"
+str_view(x, "^Line")
+str_view("----")
+str_view(x, regex("^Line", multiline = TRUE))
+```
+
+### comments
+Allows adding comments to regular expression by  ignore spaces and new lines, as well as everything after #.  This makes regex more understandable.  So, to use a space, you have to escape it with `\`
+```{r}
+phone <- regex(
+  r"(
+    \(?     # optional opening parens
+    (\d{3}) # area code
+    [)\-]?  # optional closing parens or dash
+    \ ?     # optional space
+    (\d{3}) # another three numbers
+    [\ -]?  # optional space or dash
+    (\d{4}) # four more numbers
+  )", 
+  comments = TRUE
+)
+str_extract(c("514-791-8141", "(123) 456 7890", "123456"), phone)
+```
+
+To opt-out of regular expression rules, use `fixed()`
+```{r}
+str_view(c("", "a", "."), fixed("."))
+```
+
+We can ignore case in `fixed()`
+```{r}
+str_view("x X", "X")
+str_view("----")
+str_view("x X", fixed("X", ignore_case = TRUE))
+```
+
+When dealing with non-English text, `coll()` is most probably what we need not `fixed()`
+```{r}
+str_view("i İ ı I", fixed("İ", ignore_case = TRUE))
+str_view("----")
+str_view("i İ ı I", coll("İ", ignore_case = TRUE, locale = "tr"))
+```
+
+Check [Section 15.6](https://r4ds.hadley.nz/regexps.html#practice) from R4DS for practical examples
+
+
+List of built-in colors in R
+```{r}
+colors() |> 
+  as.data.frame() |> 
+  rename("color" = "colors()") |> 
+  mutate(
+    base = str_extract(color, "[a-zA-Z]+"),
+    num = str_extract(color, "[0-9]+")
+    ) |> 
+  count(base, sort = TRUE)
+```
+
+
+`str_escape()` will escape meta-characers when building a pattern via `str_flaten()`
+```{r}
+pat <- c(".", "?")
+
+pat
+
+str_view("---")
+
+str_flatten(pat)
+
+str_view("---")
+
+str_flatten(pat) |> 
+  str_view()
+
+str_view("---")
+
+str_flatten(pat) |> 
+  str_escape()
+
+str_view("---")
+
+str_flatten(pat) |> 
+  str_escape() |> 
+  str_view()
+```
+
+List objects available in the global environment.
+```{r}
+options(max.print = 10)
+
+# all
+apropos(".")
+
+# those that match str
+apropos("str") |> 
+  str_view("str")
+```
+
+List files in path
+```{r}
+# all
+list.files(pattern = ".")
+
+str_view("-----")
+
+# qmd files
+list.files(pattern = "\\.qmd$")
+```
+
+## Base R vs stringr
+
+- The pattern language used in base R is slightly different to that used by stringr
+- Base R use either the [TRE engine](https://github.com/laurikari/tre) or the [PCRE engine](https://www.pcre.org/) depending on if `perl = TRUE`
+- stringr is build on top [stringi package](https://stringi.gagolewski.com/) --> build on top of [ICU engine](https://unicode-org.github.io/icu/userguide/strings/regexp.html)
+
+
+## More Resource
+
+- `vignette("regular-expressions", package = "stringr")`
+- https://www.regular-expressions.info/
+- [stringi package](https://stringi.gagolewski.com/)

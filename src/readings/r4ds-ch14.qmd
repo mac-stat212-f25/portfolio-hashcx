@@ -1,0 +1,374 @@
+---
+title: "r4ds-ch14"
+format: html
+---
+
+```{r}
+library(tidyverse)  # stringr --> string string, all start with str_
+library(babynames)  # fun strings
+```
+
+When printing strings, it will be represented differently that its actual representation to allow copy & past if needed and using in code.  To see what the actual representation, use `str_view`
+```{r}
+x1 <- "hello\\this\nstring1\n\nwith many lines"
+x1
+str_view(x1)
+```
+
+Sometimes, when wanting to printing code for example, the string becomes full of escape character `\` making the code suffer from the [Leaning Toothpick Syndrome](https://en.wikipedia.org/wiki/Leaning_toothpick_syndrome).  To avoid this problem, we can use **raw string** which starts with `r"(` and finishes with `)"`, `[]` or `{}` can be used instead and if that is not enough, you can use any number of dashes before `(` and after `)` to make a unique pattern, eg, `r----"(blal bla bla)----`
+```{r}
+ha <- "double_quote <- \"\\\"\" # or '\"'
+single_quote <- '\\'' # or \"'\""
+ha
+str_view(ha)
+```
+
+```{r}
+better <- r"(
+hello
+this
+is
+-----
+"Amin"
+-----
+
+I meant `'a'min`
+
+)"
+better
+str_view(better)
+```
+
+Special Characters
+
+- Double quote `\"`
+- Single quote `\'`
+- Backslash `\\`
+- New line `\n`
+- Tab `\t`
+- Unicode escape `\u` and `\U` to write non-English characters that work on ALL systems
+- `?Quotes` lists special characters
+
+```{r}
+sc <- c("1\n2", "1\t2", "1\u00b52", "1\U0001f6042")
+sc
+str_view(sc)
+```
+
+```{r}
+s1 <- r"(He said "That's amazing!")"
+s1
+str_view(s1)
+```
+
+```{r}
+s2 <- r"(\a\b\c\d)"
+s2
+str_view(s2)
+```
+
+```{r}
+s3 <- r"(\\\\\)"
+s3
+str_view(s3)
+```
+```{r}
+s4 <- "This\u00a0is\u00a0tricky"  # \u00a0 non-break space
+s4
+str_view(s4)
+```
+
+### stringr `str_c` vs base `paste0`
+
+stringr `str_c` is similar to base `paste0` but follows the tidyverse rules for recycling and propagating missing values
+
+`coalesce()` to replace `NA`
+```{r}
+g <- c("Amin", NA)
+g
+str_view(g)
+
+g |> 
+  as.data.frame() |> 
+  mutate(g2 = coalesce(g, "**missing**"))
+```
+
+
+### stringr `str_c` vs glue `str_glue`
+
+- When using `str_glue`, in a quotted string, inside `{name}` will be evaluate like it is outside the quotes which makes is a elevate the need to use many `""`
+- `str_glue` convert `NA` into `"NA"` which is not consistent with tidyverse approach of missing value propagation
+- To use `{}` in the string, double them as `{{Hi {name}!}}`
+```{r}
+df <- tribble(
+  ~name, ~nickname,
+  "Amin", "Am~",
+  "Za", "Z!",
+  "Nona", NA
+)
+df
+
+df |> 
+  mutate(great = str_glue("Hi {nickname}"),
+         greeeting = str_glue("Hi {{{nickname}}}"))
+```
+
+### Combine vs Flatten
+- `str_c` and `str_glue` produce the same # or rows as their input ==> use with `mutate`
+- To combine multiple strings into a single string as when using `summarize` we use `str_flatten`
+```{r}
+df <- tribble(
+  ~ name, ~ fruit,
+  "Carmen", "banana",
+  "Carmen", "apple",
+  "Marvin", "nectarine",
+  "Terence", "cantaloupe",
+  "Terence", "papaya",
+  "Terence", "mandarin"
+)
+df
+
+df |> 
+  group_by(name) |> 
+  summarise(all_fruits = str_flatten(fruit),
+            all_fruits2 = str_flatten(fruit, ", "),
+            all_fruits3 = str_flatten(fruit, ", ", last = ", and "))
+```
+
+### Sperating String
+
+`separate_longer_*` useful when number of components varies from row to row
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "a,b,c",
+  "g2", "d,e",
+  "g3", "a,m,i,n"
+)
+df1
+
+df1 |> 
+  separate_longer_delim(y, delim = ",")
+```
+
+`separate_longer_position` is rare to see but some older databases use very compact format where each character is used to record a value
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "abc",
+  "g2", "de",
+  "g3", "amin"
+)
+df1
+
+df1 |> 
+  separate_longer_position(y, width = 1)
+```
+
+`separate_wider_*` is most useful when there are fixed number of components in each string and we want to spread them into columns.
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "a,b,c",
+  "g2", "d,e,f",
+  "g3", "a,m,i"
+)
+df1
+
+df1 |> 
+  separate_wider_delim(y, delim = ",", names = c("y1", "y2", "y3"))
+```
+
+If a piece is not needed, use `NA` in its position in the name argument
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "a,b,c",
+  "g2", "d,e,f",
+  "g3", "a,m,i"
+)
+df1
+
+df1 |> 
+  separate_wider_delim(y, delim = ",", names = c("y1", NA, "y3"))
+```
+
+When using `separate_wider_position`, when need to supply the width of each column
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "abc",
+  "g2", "def",
+  "g3", "ami"
+)
+df1
+
+df1 |> 
+  separate_wider_position(y, widths = c(y1 = 1, y2 = 1, y3 = 1))
+```
+
+When using `separate_wider_position`, we can omit pieces of string by not naming them
+```{r}
+df1 <- tribble(
+  ~x, ~y,
+  "g1", "abc",
+  "g2", "def",
+  "g3", "ami"
+)
+df1
+
+df1 |> 
+  separate_wider_position(y, widths = c(y1 = 1, 1, y3 = 1))
+```
+
+```{r}
+babynames
+```
+
+```{r}
+babynames |> 
+  count(name, sort = TRUE) |> 
+  top_n(10)
+```
+
+```{r}
+babynames |> 
+  filter(sex == "M") |> 
+  group_by(year) |> 
+  mutate(
+    most_pop = (n == max(n))
+    ) |> 
+  filter(most_pop) |> 
+  ggplot(aes(x = year, y = n)) +
+  geom_col(color = "gray") +
+  geom_line(color = "red", linewidth = 2) +
+  geom_label(aes(label = name))
+```
+
+### Non-English Text
+
+When dealing with non-English text, we will face the following problems:
+
+- Encoding
+- Letter variations
+- Locale-dependent functions
+
+To the underlying representation (encoding) of a string, use `charToRaw()` function which shows the hexadecimal numbers where each code represent a character (encode a character).
+```{r}
+charToRaw("Amin")
+```
+
+- ASCII encodes English characters and stands for American Standard Code for Information Interchange
+- In the early days of computing, there were many competing standards for non-English characters, eg, 
+  - there were 2 different encoding for Europe
+      - Latin1 (aka ISO-8859-1) used for Western European languages
+      - Latin2 (aka ISO-8859-2) used for Central European languages
+      - The byte `b1` in Latin1 is `±` and Latin 2 is `ą`
+- UTF-8 can encode every character used by humans today & many extra symbols like emojis
+
+
+`readr` use UTF-8 everywhere but will fail for data produced by older systems that does not use UTF-8.  If this happens, the strings will look weird when printing them--sometimes one or two characters might be messed; other times, we will get complete gibberish.
+```{r}
+x <- r"(text
+El Ni\xf1o was particularly bad this year)"
+x
+str_view(x)
+
+read_csv(x)
+
+read_csv(x, locale = locale(encoding = "Latin1"))$text
+```
+
+```{r}
+x2 <- I("text\n\x82\xb1\x82\xf1\x82\xc9\x82\xbf\x82\xcd")
+read_csv(x2)$text
+```
+
+```{r}
+read_csv(x2, locale = locale(encoding = "Shift-JIS"))$text
+```
+
+
+
+`readr::guess_encoding()` help in figuring out encoding but it is not foolproof and works better when having a lot of text (unlike the toy examples in this file).
+
+To learn more about encoding, read [What every programmer absolutely, positively needs to know about encodings and character sets to work with text](https://kunststube.net/encoding/)
+
+
+### Letter Variations
+
+Languages with accents pose a significant challenge when determining position of letters, eg, with `str_length()` and `str_sub()` because an accented letter might be encoded as a single individual character, eg, `ü`, or as two characters (unaccented letter + diacritic mark), eg, `u` + `¨`.
+```{r}
+u <- c("\u00fc", "u\u0308")
+u |> 
+  as.data.frame() |> 
+  mutate(
+    view = str_view(u),
+    len = str_length(u)
+    )
+```
+
+When comparing such string for equality, use `str_equal()` instead of `==`
+```{r}
+u <- c("\u00fc", "u\u0308")
+u[[1]] == u[[2]]
+str_equal(u[[1]], u[[2]])
+```
+
+
+### Locale Dependent Functions
+
+- Some `stringr` functions depend on your locale which is similar to a language but includes an optional region specifier to handle regional variations within language.
+- A locale is specified by a lower-case language abbreviation, eg, `en`, optionally followed by a `_` and an upper-case region identifier, eg, `US` for American English and `GB` for British English
+- To know the code of a locale, 
+  - Wikipedia's [List of ISO 639 language codes](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) has a code list
+  - `stringi::stri_locale_list()` list the supported locale
+```{r}
+stringi::stri_locale_list() |> 
+  class()
+```
+
+```{r}
+stringi::stri_locale_list() |> 
+  as.data.frame() |> 
+  setNames("lang") |> 
+  filter(str_detect(lang, "^ar"))
+```
+
+- Base R string functions automatically use the locale set by the operation system which means that they will do what you expect for your language but when sharing code with others living in different country, these function might produce something different.  
+- To avoid the problem in the previous bullet point, `stringr` defaults to English rules by using the `en` locale and requires the user to specify the `locale` argument to override it.
+- There are only 2 sets of functions where locale matters: changing case and sorting
+```{r}
+# Turkish has two i's with and w/o a dot and since they are different characters
+#   they are capatalized differently
+ii <- c("i", "ı")
+
+ii |> 
+  as.data.frame() |> 
+  mutate(
+    raw = charToRaw(ii),
+    up = str_to_upper(ii),
+    up_lo = str_to_upper(ii, locale = "tr"),  # tr: Turkish
+    up_lo_raw = charToRaw(up_lo))
+```
+
+
+Sorting depend on the order of the alphabet and the order of the alphabet is not the same for every language (some language such as Chinese doesn't' have an alphabet), eg, in Czech, the compound letter `ch` appears after `h`.
+```{r}
+sor <- c("a", "c", "ch", "h", "z")
+str_sort(sor)
+str_sort(sor, locale = "cs")  # cs: Czech
+```
+
+```{r}
+sor |> 
+  as.data.frame() |> 
+  arrange(sor)
+```
+
+```{r}
+sor |> 
+  as.data.frame() |> 
+  arrange(sor, .locale = "cs")
+```
+
